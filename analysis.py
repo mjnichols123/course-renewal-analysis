@@ -5,59 +5,39 @@ fulldecent/mts_course_renewal_marketing HuggingFace dataset and reports
 basic statistics.
 """
 
-import pandas as pd
-from huggingface_hub import list_repo_files, hf_hub_download
+"""Run the initial data-quality analysis for the course-renewal dataset."""
 
-DATASET_REPO = "fulldecent/mts_course_renewal_marketing"
-DATA_DIR = "published_data"
+"""Main entry point for the Course Renewal Analysis project."""
 
-
-def load_tables() -> dict[str, pd.DataFrame]:
-    """Download and load all data files from the published_data directory."""
-    all_files = list(
-        list_repo_files(DATASET_REPO, repo_type="dataset")
-    )
-    data_files = [
-        f for f in all_files
-        if f.startswith(DATA_DIR + "/") and not f.endswith("/")
-    ]
-
-    tables: dict[str, pd.DataFrame] = {}
-    for file_path in sorted(data_files):
-        local_path = hf_hub_download(
-            repo_id=DATASET_REPO,
-            filename=file_path,
-            repo_type="dataset",
-        )
-        name = file_path[len(DATA_DIR) + 1:]  # strip "published_data/"
-        try:
-            if file_path.endswith(".parquet"):
-                tables[name] = pd.read_parquet(local_path)
-            elif file_path.endswith(".csv"):
-                tables[name] = pd.read_csv(local_path)
-            elif file_path.endswith(".jsonl") or file_path.endswith(".json"):
-                tables[name] = pd.read_json(local_path, lines=file_path.endswith(".jsonl"))
-            else:
-                print(f"Skipping unsupported file type: {file_path}")
-        except Exception as exc:
-            print(f"Error loading {file_path}: {exc}")
-
-    return tables
+from src.data_cleaning import clean_tables
+from src.data_loading import load_tables
+from src.data_profile import generate_data_profile
+from src.data_summary import summarize_table
 
 
 def main() -> None:
-    tables = load_tables()
+    """Load, clean, summarize, and profile the dataset tables."""
+    print("Loading tables...")
+    raw_tables = load_tables()
 
-    if not tables:
-        print("No tables found in published_data.")
+    if not raw_tables:
+        print("No tables found.")
         return
 
-    print("Row counts per table:")
-    print("-" * 40)
-    for name, df in tables.items():
-        print(f"  {name}: {len(df):,} rows")
-    print("-" * 40)
-    print(f"  Total tables: {len(tables)}")
+    print(f"Loaded {len(raw_tables)} tables.")
+
+    print("Cleaning tables...")
+    cleaned_tables = clean_tables(raw_tables)
+
+    print("Generating terminal summaries...")
+
+    for name, df in cleaned_tables.items():
+        summarize_table(name, df)
+
+    print("Generating Markdown data profile...")
+    report_path = generate_data_profile(cleaned_tables)
+
+    print(f"Data profile saved to: {report_path}")
 
 
 if __name__ == "__main__":
