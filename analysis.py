@@ -11,11 +11,12 @@ basic statistics.
 
 from src.data_cleaning import clean_tables
 from src.data_loading import load_tables
+from src.data_profile import generate_data_profile
 from src.data_summary import summarize_table
 
 
 def main() -> None:
-    """Load, clean, and summarize the dataset tables."""
+    """Load, clean, summarize, and profile the dataset tables."""
     print("Loading tables...")
     raw_tables = load_tables()
 
@@ -28,10 +29,15 @@ def main() -> None:
     print("Cleaning tables...")
     cleaned_tables = clean_tables(raw_tables)
 
-    print("Generating summaries...")
+    print("Generating terminal summaries...")
 
     for name, df in cleaned_tables.items():
         summarize_table(name, df)
+
+    print("Generating Markdown data profile...")
+    report_path = generate_data_profile(cleaned_tables)
+
+    print(f"Data profile saved to: {report_path}")
 
 
 if __name__ == "__main__":
