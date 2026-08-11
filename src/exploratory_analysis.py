@@ -311,3 +311,327 @@ def summarize_email_expiration_timing(
         .value_counts()
         .sort_index()
     )
+    
+def filter_relevant_email_timing(
+    email_timing: pd.DataFrame,
+    window_days: int = 180,
+) -> pd.DataFrame:
+    """Keep email-expiration records within the analysis window."""
+
+    relevant = email_timing[
+        email_timing["days_before_expiration"].between(
+            -window_days,
+            window_days,
+        )
+    ].copy()
+
+    return relevant
+
+
+def summarize_relevant_email_timing(
+    email_timing: pd.DataFrame,
+) -> None:
+    """Summarize email activity near course expiration."""
+
+    print("\n" + "=" * 70)
+    print("RELEVANT EMAIL OUTREACH WINDOW")
+    print("=" * 70)
+
+    print(
+        "Email-expiration records:",
+        f"{len(email_timing):,}",
+    )
+
+    print(
+        "Customers represented:",
+        f"{email_timing['email_blinded_index'].nunique():,}",
+    )
+
+    before = email_timing[
+        email_timing["days_before_expiration"] >= 0
+    ]
+
+    after = email_timing[
+        email_timing["days_before_expiration"] < 0
+    ]
+
+    print(
+        "Emails before expiration:",
+        f"{len(before):,}",
+    )
+
+    print(
+        "Emails after expiration:",
+        f"{len(after):,}",
+    )
+
+    print("\nBy blast type:")
+    print(
+        email_timing["is_large_blast"]
+        .value_counts()
+        .sort_index()
+    )
+
+    print("\nBy course:")
+    print(
+        email_timing["course_blinded_index"]
+        .value_counts()
+        .sort_index()
+    )
+    
+def build_expiration_outcome_dataset(
+    expirations: pd.DataFrame,
+    email_timing: pd.DataFrame,
+    orders: pd.DataFrame,
+) -> pd.DataFrame:
+    """Build one row per expiration event with outreach and order outcomes."""
+
+    expiration_events = (
+        expirations
+        .dropna(subset=["expired_date"])
+        .drop_duplicates()
+        .copy()
+    )
+
+    # Restrict to courses represented in the email-blast dataset.
+    expiration_events = expiration_events[
+        expiration_events["course_blinded_index"].isin([2, 9, 10])
+    ].copy()
+
+    # ---------------------------------------------------------
+    # Pre-expiration email exposure
+    # ---------------------------------------------------------
+
+    pre_expiration_emails = email_timing[
+        email_timing["days_before_expiration"].between(
+            0,
+            180,
+        )
+    ].copy()
+
+    email_summary = (
+        pre_expiration_emails
+        .groupby(
+            [
+                "email_blinded_index",
+                "expired_date",
+                "course_blinded_index",
+            ]
+        )
+        .agg(
+            pre_expiration_emails=(
+                "sent_at",
+                "count",
+            ),
+            large_blast_emails=(
+                "is_large_blast",
+                "sum",
+            ),
+        )
+        .reset_index()
+    )
+
+    email_summary["non_large_blast_emails"] = (
+        email_summary["pre_expiration_emails"]
+        - email_summary["large_blast_emails"]
+    )
+
+    expiration_events = expiration_events.merge(
+        email_summary,
+        on=[
+            "email_blinded_index",
+            "expired_date",
+            "course_blinded_index",
+        ],
+        how="left",
+    )
+
+    email_columns = [
+        "pre_expiration_emails",
+        "large_blast_emails",
+        "non_large_blast_emails",
+    ]
+
+    expiration_events[email_columns] = (
+        expiration_events[email_columns]
+        .fillna(0)
+        .astype(int)
+    )
+
+    expiration_events["received_pre_expiration_email"] = (
+        expiration_events["pre_expiration_emails"] > 0
+    ).astype(int)
+
+    # ---------------------------------------------------------
+    # Subsequent order outcomes
+    # ---------------------------------------------------------
+
+    order_pairs = expiration_events[
+        [
+            "email_blinded_index",
+            "expired_date",
+            "course_blinded_index",
+        ]
+    ].merge(
+        orders[
+            [
+                "email_blinded_index",
+                "created_at",
+            ]
+        ].drop_duplicates(),
+        on="email_blinded_index",
+        how="left",
+    )
+
+    order_pairs["days_after_expiration"] = (
+        order_pairs["created_at"]
+        - order_pairs["expired_date"]
+    ).dt.total_seconds() / 86400
+
+    keys = [
+        "email_blinded_index",
+        "expired_date",
+        "course_blinded_index",
+    ]
+
+    for days in [30, 60, 90, 180]:
+
+        qualifying = (
+            order_pairs[
+                order_pairs["days_after_expiration"].between(
+                    0,
+                    days,
+                )
+            ]
+            .groupby(keys)
+            .size()
+            .gt(0)
+            .astype(int)
+            .rename(f"order_within_{days}d")
+            .reset_index()
+        )
+
+        expiration_events = expiration_events.merge(
+            qualifying,
+            on=keys,
+            how="left",
+        )
+
+        expiration_events[f"order_within_{days}d"] = (
+            expiration_events[f"order_within_{days}d"]
+            .fillna(0)
+            .astype(int)
+        )
+
+    return expiration_events
+
+def summarize_outreach_outcomes(
+    outcomes: pd.DataFrame,
+) -> None:
+    """Compare subsequent order rates by pre-expiration outreach."""
+
+    print("\n" + "=" * 70)
+    print("PRE-EXPIRATION OUTREACH VS SUBSEQUENT ORDERS")
+    print("=" * 70)
+
+    print(f"Expiration events analyzed: {len(outcomes):,}")
+
+    print(
+        "Events receiving pre-expiration outreach:",
+        f"{outcomes['received_pre_expiration_email'].sum():,}",
+    )
+
+    print(
+        "Events receiving no pre-expiration outreach:",
+        f"{(outcomes['received_pre_expiration_email'] == 0).sum():,}",
+    )
+
+    print("\nSubsequent order rates:")
+
+    for days in [30, 60, 90, 180]:
+
+        column = f"order_within_{days}d"
+
+        rates = (
+            outcomes
+            .groupby("received_pre_expiration_email")[column]
+            .mean()
+            .mul(100)
+        )
+
+        no_email_rate = rates.get(0, float("nan"))
+        email_rate = rates.get(1, float("nan"))
+
+        print(f"\nWithin {days} days:")
+        print(
+            f"  No pre-expiration email: {no_email_rate:.2f}%"
+        )
+        print(
+            f"  Received pre-expiration email: {email_rate:.2f}%"
+        )
+        
+def summarize_orders_by_email_frequency(
+    outcomes: pd.DataFrame,
+) -> None:
+    """Compare subsequent order rates by number of pre-expiration emails."""
+
+    print("\n" + "=" * 70)
+    print("ORDER RATES BY PRE-EXPIRATION EMAIL FREQUENCY")
+    print("=" * 70)
+
+    analysis = outcomes.copy()
+
+    analysis["email_frequency_group"] = pd.cut(
+        analysis["pre_expiration_emails"],
+        bins=[-1, 0, 1, 2, 3, float("inf")],
+        labels=[
+            "0 emails",
+            "1 email",
+            "2 emails",
+            "3 emails",
+            "4+ emails",
+        ],
+    )
+
+    summary = (
+        analysis
+        .groupby(
+            "email_frequency_group",
+            observed=False,
+        )
+        .agg(
+            expiration_events=(
+                "email_blinded_index",
+                "size",
+            ),
+            order_rate_30d=(
+                "order_within_30d",
+                "mean",
+            ),
+            order_rate_60d=(
+                "order_within_60d",
+                "mean",
+            ),
+            order_rate_90d=(
+                "order_within_90d",
+                "mean",
+            ),
+            order_rate_180d=(
+                "order_within_180d",
+                "mean",
+            ),
+        )
+    )
+
+    rate_columns = [
+        "order_rate_30d",
+        "order_rate_60d",
+        "order_rate_90d",
+        "order_rate_180d",
+    ]
+
+    summary[rate_columns] = (
+        summary[rate_columns] * 100
+    )
+
+    print(summary.round(2).to_string())

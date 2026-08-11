@@ -20,6 +20,15 @@ from src.exploratory_analysis import (
     summarize_nearest_order_timing,
     prepare_email_expiration_timing,
     summarize_email_expiration_timing,
+    filter_relevant_email_timing,
+    summarize_relevant_email_timing,
+    build_expiration_outcome_dataset,
+    summarize_outreach_outcomes,
+    summarize_orders_by_email_frequency,
+)
+
+from src.visualizations import (
+    plot_order_rates_by_email_frequency,
 )
 
 def main() -> None:
@@ -69,6 +78,37 @@ def main() -> None:
 
     summarize_email_expiration_timing(
         email_timing,
+    )
+    
+    relevant_email_timing = filter_relevant_email_timing(
+    email_timing,
+    window_days=180,
+    )
+
+    summarize_relevant_email_timing(
+        relevant_email_timing,
+    )
+    
+    outcomes = build_expiration_outcome_dataset(
+    expirations,
+    relevant_email_timing,
+    orders,
+    )
+
+    summarize_outreach_outcomes(
+        outcomes,
+    )
+    
+    summarize_orders_by_email_frequency(
+    outcomes,
+    )
+    
+    figure_path = plot_order_rates_by_email_frequency(
+    outcomes,
+    )
+
+    print(
+        f"\nEmail frequency figure saved to: {figure_path}"
     )
     
     # Terminal data summaries
