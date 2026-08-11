@@ -13,10 +13,18 @@ from src.data_cleaning import clean_tables
 from src.data_loading import load_tables
 from src.data_profile import generate_data_profile
 from src.data_summary import summarize_table
-
+from src.exploratory_analysis import (
+    prepare_expiration_order_pairs,
+    summarize_order_timing,
+    prepare_nearest_order_timing,
+    summarize_nearest_order_timing,
+    prepare_email_expiration_timing,
+    summarize_email_expiration_timing,
+)
 
 def main() -> None:
-    """Load, clean, summarize, and profile the dataset tables."""
+    """Load, clean, summarize, profile, and explore the dataset tables."""
+
     print("Loading tables...")
     raw_tables = load_tables()
 
@@ -29,15 +37,99 @@ def main() -> None:
     print("Cleaning tables...")
     cleaned_tables = clean_tables(raw_tables)
 
-    print("Generating terminal summaries...")
+    # Assign tables to shorter variable names
+    expirations = cleaned_tables["expirations.parquet"]
+    orders = cleaned_tables["orders.parquet"]
+    email_blasts = cleaned_tables["email_blasts.parquet"]
+
+    # Order timing analysis
+    expiration_order_pairs = prepare_expiration_order_pairs(
+        expirations,
+        orders,
+    )
+
+    summarize_order_timing(
+        expiration_order_pairs
+    )
+
+    nearest_order_timing = prepare_nearest_order_timing(
+        expirations,
+        orders,
+    )
+
+    summarize_nearest_order_timing(
+        nearest_order_timing
+    )
+
+
+    # Email timing analysis
+    email_timing = prepare_email_expiration_timing(
+        email_blasts,
+    )
+
+    summarize_email_expiration_timing(
+        email_timing,
+    )
+    
+    # Terminal data summaries
+    print("\nGenerating terminal summaries...")
 
     for name, df in cleaned_tables.items():
         summarize_table(name, df)
 
-    print("Generating Markdown data profile...")
-    report_path = generate_data_profile(cleaned_tables)
 
-    print(f"Data profile saved to: {report_path}")
+    # Additional dataset checks
+    print("\nCourse expiration breakdown:")
+    print(
+        expirations
+        .groupby(["course_blinded_index", "our_course"])
+        .size()
+        .unstack(fill_value=0)
+    )
+
+    print("\nUnique customers by our_course:")
+    print(
+        expirations
+        .groupby("our_course")["email_blinded_index"]
+        .nunique()
+    )
+
+    print("\nOrder customer overlap:")
+
+    expiration_customers = set(
+        expirations["email_blinded_index"]
+    )
+
+    order_customers = set(
+        orders["email_blinded_index"]
+    )
+
+    print(
+        "Expiration customers:",
+        len(expiration_customers),
+    )
+
+    print(
+        "Order customers:",
+        len(order_customers),
+    )
+
+    print(
+        "Customers appearing in both:",
+        len(expiration_customers & order_customers),
+    )
+
+
+    # Generate Markdown profile
+    print("\nGenerating Markdown data profile...")
+
+    report_path = generate_data_profile(
+        cleaned_tables
+    )
+
+    print(
+        f"Data profile saved to: {report_path}"
+    )
 
 
 if __name__ == "__main__":
