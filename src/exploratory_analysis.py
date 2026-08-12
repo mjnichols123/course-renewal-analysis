@@ -635,3 +635,285 @@ def summarize_orders_by_email_frequency(
     )
 
     print(summary.round(2).to_string())
+    
+    
+def summarize_orders_by_email_timing(
+    outcomes: pd.DataFrame,
+    email_timing: pd.DataFrame,
+) -> None:
+    """Compare subsequent order rates by timing of pre-expiration outreach."""
+
+    print("\n" + "=" * 70)
+    print("ORDER RATES BY PRE-EXPIRATION EMAIL TIMING")
+    print("=" * 70)
+
+    pre_expiration = email_timing[
+        email_timing["days_before_expiration"].between(0, 180)
+    ].copy()
+
+    # Assign each email to a timing bucket.
+    pre_expiration["timing_group"] = pd.cut(
+        pre_expiration["days_before_expiration"],
+        bins=[-0.001, 30, 60, 90, 180],
+        labels=[
+            "0-30 days",
+            "31-60 days",
+            "61-90 days",
+            "91-180 days",
+        ],
+        include_lowest=True,
+    )
+
+    keys = [
+        "email_blinded_index",
+        "expired_date",
+        "course_blinded_index",
+    ]
+
+    # One row per expiration event and timing bucket.
+    timing_exposure = (
+        pre_expiration
+        .dropna(subset=["timing_group"])
+        .groupby(
+            keys + ["timing_group"],
+            observed=True,
+        )
+        .size()
+        .rename("emails_in_timing_group")
+        .reset_index()
+    )
+
+    timing_exposure = timing_exposure[
+        timing_exposure["emails_in_timing_group"] > 0
+    ]
+
+    # Add order outcomes.
+    timing_outcomes = timing_exposure.merge(
+        outcomes[
+            keys
+            + [
+                "order_within_30d",
+                "order_within_60d",
+                "order_within_90d",
+                "order_within_180d",
+            ]
+        ],
+        on=keys,
+        how="left",
+    )
+
+    summary = (
+        timing_outcomes
+        .groupby(
+            "timing_group",
+            observed=True,
+        )
+        .agg(
+            expiration_events=(
+                "email_blinded_index",
+                "size",
+            ),
+            average_emails=(
+                "emails_in_timing_group",
+                "mean",
+            ),
+            order_rate_30d=(
+                "order_within_30d",
+                "mean",
+            ),
+            order_rate_60d=(
+                "order_within_60d",
+                "mean",
+            ),
+            order_rate_90d=(
+                "order_within_90d",
+                "mean",
+            ),
+            order_rate_180d=(
+                "order_within_180d",
+                "mean",
+            ),
+        )
+    )
+
+    rate_columns = [
+        "order_rate_30d",
+        "order_rate_60d",
+        "order_rate_90d",
+        "order_rate_180d",
+    ]
+
+    summary[rate_columns] = (
+        summary[rate_columns] * 100
+    )
+
+    print(summary.round(2).to_string())
+    
+def summarize_frequency_timing_interaction(
+    outcomes: pd.DataFrame,
+    email_timing: pd.DataFrame,
+) -> None:
+    """Analyze order rates for repeated outreach across timing windows."""
+
+    print("\n" + "=" * 70)
+    print("EMAIL FREQUENCY + TIMING INTERACTION")
+    print("=" * 70)
+
+    keys = [
+        "email_blinded_index",
+        "expired_date",
+        "course_blinded_index",
+    ]
+
+    pre_expiration = email_timing[
+        email_timing["days_before_expiration"].between(0, 180)
+    ].copy()
+
+    # Create indicators showing whether an expiration event
+    # received at least one email in each timing window.
+    pre_expiration["email_0_30"] = (
+        pre_expiration["days_before_expiration"]
+        .between(0, 30)
+        .astype(int)
+    )
+
+    pre_expiration["email_31_60"] = (
+        pre_expiration["days_before_expiration"]
+        .between(30, 60, inclusive="right")
+        .astype(int)
+    )
+
+    pre_expiration["email_61_90"] = (
+        pre_expiration["days_before_expiration"]
+        .between(60, 90, inclusive="right")
+        .astype(int)
+    )
+
+    pre_expiration["email_91_180"] = (
+        pre_expiration["days_before_expiration"]
+        .between(90, 180, inclusive="right")
+        .astype(int)
+    )
+
+    exposure = (
+        pre_expiration
+        .groupby(keys)
+        .agg(
+            total_emails=("sent_at", "count"),
+            email_0_30=("email_0_30", "max"),
+            email_31_60=("email_31_60", "max"),
+            email_61_90=("email_61_90", "max"),
+            email_91_180=("email_91_180", "max"),
+        )
+        .reset_index()
+    )
+
+    # Focus on expiration events receiving repeated outreach.
+    exposure = exposure[
+        exposure["total_emails"] >= 2
+    ].copy()
+
+    timing_columns = [
+        "email_0_30",
+        "email_31_60",
+        "email_61_90",
+        "email_91_180",
+    ]
+
+    exposure["timing_windows_reached"] = (
+        exposure[timing_columns].sum(axis=1)
+    )
+
+    interaction = exposure.merge(
+        outcomes[
+            keys
+            + [
+                "order_within_30d",
+                "order_within_60d",
+                "order_within_90d",
+                "order_within_180d",
+            ]
+        ],
+        on=keys,
+        how="left",
+    )
+
+    print(
+        "Expiration events with 2+ emails:",
+        f"{len(interaction):,}",
+    )
+
+    print("\nOrder rates by number of timing windows reached:")
+
+    summary = (
+        interaction
+        .groupby("timing_windows_reached")
+        .agg(
+            expiration_events=(
+                "email_blinded_index",
+                "size",
+            ),
+            average_emails=(
+                "total_emails",
+                "mean",
+            ),
+            order_rate_30d=(
+                "order_within_30d",
+                "mean",
+            ),
+            order_rate_60d=(
+                "order_within_60d",
+                "mean",
+            ),
+            order_rate_90d=(
+                "order_within_90d",
+                "mean",
+            ),
+            order_rate_180d=(
+                "order_within_180d",
+                "mean",
+            ),
+        )
+    )
+
+    rate_columns = [
+        "order_rate_30d",
+        "order_rate_60d",
+        "order_rate_90d",
+        "order_rate_180d",
+    ]
+
+    summary[rate_columns] = (
+        summary[rate_columns] * 100
+    )
+
+    print(summary.round(2).to_string())
+
+    print("\n2+ email events by timing window:")
+
+    for column, label in [
+        ("email_0_30", "0-30 days"),
+        ("email_31_60", "31-60 days"),
+        ("email_61_90", "61-90 days"),
+        ("email_91_180", "91-180 days"),
+    ]:
+
+        subset = interaction[
+            interaction[column] == 1
+        ]
+
+        if len(subset) == 0:
+            continue
+
+        print(f"\n{label}:")
+        print(f"  Expiration events: {len(subset):,}")
+
+        for days in [30, 60, 90, 180]:
+            rate = (
+                subset[f"order_within_{days}d"].mean()
+                * 100
+            )
+
+            print(
+                f"  {days}-day order rate: {rate:.2f}%"
+            )

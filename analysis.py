@@ -25,10 +25,14 @@ from src.exploratory_analysis import (
     build_expiration_outcome_dataset,
     summarize_outreach_outcomes,
     summarize_orders_by_email_frequency,
+    summarize_orders_by_email_timing,
+    summarize_frequency_timing_interaction,
 )
 
 from src.visualizations import (
     plot_order_rates_by_email_frequency,
+    plot_order_rates_by_email_timing,
+    plot_order_rates_by_timing_windows,
 )
 
 def main() -> None:
@@ -100,15 +104,46 @@ def main() -> None:
     )
     
     summarize_orders_by_email_frequency(
-    outcomes,
+        outcomes,
     )
     
-    figure_path = plot_order_rates_by_email_frequency(
-    outcomes,
+    summarize_orders_by_email_timing(
+        outcomes,
+        relevant_email_timing,
+    )
+    
+    summarize_frequency_timing_interaction(
+        outcomes,
+        relevant_email_timing,
+    )
+    
+    frequency_figure_path = plot_order_rates_by_email_frequency(
+        outcomes,
     )
 
     print(
-        f"\nEmail frequency figure saved to: {figure_path}"
+        f"\nEmail frequency figure saved to: "
+        f"{frequency_figure_path}"
+    )
+
+    timing_figure_path = plot_order_rates_by_email_timing(
+        outcomes,
+        relevant_email_timing,
+    )
+
+    print(
+        f"Email timing figure saved to: "
+        f"{timing_figure_path}"
+    )
+
+    timing_windows_figure_path = plot_order_rates_by_timing_windows(
+        outcomes,
+        relevant_email_timing,
+    )
+
+    print(
+        f"Timing windows figure saved to: "
+        f"{timing_windows_figure_path}"
     )
     
     # Terminal data summaries
