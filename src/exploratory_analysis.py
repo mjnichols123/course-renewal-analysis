@@ -917,3 +917,127 @@ def summarize_frequency_timing_interaction(
             print(
                 f"  {days}-day order rate: {rate:.2f}%"
             )
+            
+            
+def summarize_final_30_day_timing(
+    outcomes: pd.DataFrame,
+    email_timing: pd.DataFrame,
+) -> None:
+    """Analyze email outreach within the final 30 days before expiration."""
+
+    print("\n" + "=" * 70)
+    print("FINAL 30 DAYS BEFORE EXPIRATION")
+    print("=" * 70)
+
+    keys = [
+        "email_blinded_index",
+        "expired_date",
+        "course_blinded_index",
+    ]
+
+    final_30 = email_timing[
+        email_timing["days_before_expiration"].between(0, 30)
+    ].copy()
+
+    final_30["weekly_timing_group"] = pd.cut(
+        final_30["days_before_expiration"],
+        bins=[-0.001, 7, 14, 21, 30],
+        labels=[
+            "0-7 days",
+            "8-14 days",
+            "15-21 days",
+            "22-30 days",
+        ],
+        include_lowest=True,
+    )
+
+    weekly_exposure = (
+        final_30
+        .dropna(subset=["weekly_timing_group"])
+        .groupby(
+            keys + ["weekly_timing_group"],
+            observed=True,
+        )
+        .agg(
+            emails_in_window=("sent_at", "count"),
+            large_blast_emails=("is_large_blast", "sum"),
+        )
+        .reset_index()
+    )
+
+    weekly_exposure["non_large_blast_emails"] = (
+        weekly_exposure["emails_in_window"]
+        - weekly_exposure["large_blast_emails"]
+    )
+
+    weekly_outcomes = weekly_exposure.merge(
+        outcomes[
+            keys
+            + [
+                "order_within_30d",
+                "order_within_60d",
+                "order_within_90d",
+                "order_within_180d",
+            ]
+        ],
+        on=keys,
+        how="left",
+    )
+
+    summary = (
+        weekly_outcomes
+        .groupby(
+            "weekly_timing_group",
+            observed=True,
+        )
+        .agg(
+            expiration_events=(
+                "email_blinded_index",
+                "size",
+            ),
+            average_emails=(
+                "emails_in_window",
+                "mean",
+            ),
+            order_rate_30d=(
+                "order_within_30d",
+                "mean",
+            ),
+            order_rate_60d=(
+                "order_within_60d",
+                "mean",
+            ),
+            order_rate_90d=(
+                "order_within_90d",
+                "mean",
+            ),
+            order_rate_180d=(
+                "order_within_180d",
+                "mean",
+            ),
+        )
+    )
+
+    rate_columns = [
+        "order_rate_30d",
+        "order_rate_60d",
+        "order_rate_90d",
+        "order_rate_180d",
+    ]
+
+    summary[rate_columns] = (
+        summary[rate_columns] * 100
+    )
+
+    print(
+        f"Email-expiration observations in final 30 days: "
+        f"{len(final_30):,}"
+    )
+
+    print(
+        "Expiration events represented:",
+        f"{weekly_exposure[keys].drop_duplicates().shape[0]:,}",
+    )
+
+    print("\nOrder rates by weekly timing window:")
+    print(summary.round(2).to_string())
