@@ -27,6 +27,7 @@ from src.exploratory_analysis import (
     summarize_orders_by_email_frequency,
     summarize_orders_by_email_timing,
     summarize_frequency_timing_interaction,
+    summarize_final_30_day_timing,
 )
 
 from src.visualizations import (
@@ -113,6 +114,11 @@ def main() -> None:
     )
     
     summarize_frequency_timing_interaction(
+        outcomes,
+        relevant_email_timing,
+    )
+    
+    summarize_final_30_day_timing(
         outcomes,
         relevant_email_timing,
     )

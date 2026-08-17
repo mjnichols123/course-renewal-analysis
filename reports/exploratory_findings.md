@@ -177,3 +177,27 @@ Within the repeated-outreach population, events receiving an email during the fi
 Taken together with the email-frequency analysis, these results suggest that repeated outreach may be more important than simply distributing outreach across a large number of timing windows. Repeated outreach occurring closer to expiration may also be particularly relevant.
 
 However, these timing groups overlap. An expiration event may receive emails in multiple windows and therefore appear in more than one timing-specific comparison. These findings should be treated as exploratory associations rather than estimates of causal marketing effects.
+
+
+## Weekly Outreach Timing Within the Final 30 Days
+
+Because the broader timing analysis suggested that outreach near expiration may be particularly important, the final 30 days before expiration were divided into approximately weekly intervals.
+
+A total of 20,226 email-expiration observations occurred within the final 30 days, representing 8,823 expiration events.
+
+| Timing Before Expiration | Expiration Events | Average Emails | 30-Day Order Rate | 60-Day Order Rate | 90-Day Order Rate | 180-Day Order Rate |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0–7 days | 5,466 | 1.04 | 4.70% | 6.37% | 7.49% | 8.25% |
+| 8–14 days | 4,544 | 1.01 | 5.44% | 7.84% | 8.92% | 9.69% |
+| 15–21 days | 4,283 | 1.05 | 6.29% | 8.53% | 9.61% | 10.47% |
+| 22–30 days | 4,904 | 1.12 | 6.19% | 8.68% | 9.78% | 10.74% |
+
+The results show a notable pattern within the final month before expiration. Outreach occurring approximately two to four weeks before expiration is associated with stronger subsequent ordering than outreach occurring during the final week.
+
+The 22–30 day group has the highest observed 60-, 90-, and 180-day order rates, including a 10.74% 180-day rate. The 15–21 day group has the highest 30-day rate at 6.29% and performs similarly strongly across the longer outcome windows.
+
+In comparison, outreach during the final seven days before expiration has the lowest observed subsequent order rate across every outcome window, including an 8.25% 180-day rate.
+
+Average email counts are relatively similar across the four timing groups, ranging from 1.01 to 1.12 emails per expiration event within each weekly window. This suggests that the observed timing differences are not obviously explained by substantially different email frequencies within the individual windows.
+
+These results provide preliminary evidence of a possible pre-expiration outreach window approximately 15–30 days before expiration. However, expiration events may appear in multiple weekly timing groups if they received outreach during more than one part of the final month. The results therefore remain descriptive and should not be interpreted as causal effects of email timing.
