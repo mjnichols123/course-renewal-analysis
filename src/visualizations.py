@@ -4,7 +4,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
+import numpy as np
 
 FIGURE_DIR = Path("reports/figures")
 
@@ -51,10 +51,10 @@ def plot_order_rates_by_email_frequency(
     )
 
     summary.columns = [
-        "30 days",
-        "60 days",
-        "90 days",
-        "180 days",
+        "Within 30 days",
+        "Within 60 days",
+        "Within 90 days",
+        "Within 180 days",
     ]
 
     ax = summary.plot(
@@ -64,21 +64,32 @@ def plot_order_rates_by_email_frequency(
     )
 
     ax.set_title(
-        "Subsequent Order Rates by Pre-Expiration Email Frequency"
+        "Order Rate After Expiration by Pre-Expiration Email Frequency",
+        pad=28,
+    )
+
+    ax.text(
+        0.5,
+        1.02,
+        "Percentage of expiration events followed by an order within each post-expiration window",
+        transform=ax.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=10,
     )
 
     ax.set_xlabel(
-        "Number of Emails in 180 Days Before Expiration"
+        "Number of Emails Received in 180 Days Before Expiration"
     )
 
     ax.set_ylabel(
-        "Expiration Events Followed by an Order (%)"
+        "Expiration Events with a Subsequent Order (%)"
     )
 
     ax.legend(
-        title="Order Window"
+        title="Time After Expiration"
     )
-
+    
     ax.grid(
         axis="y",
         alpha=0.3,
@@ -181,7 +192,7 @@ def plot_order_rates_by_email_timing(
     )
 
     ax.set_ylabel(
-        "Expiration Events Followed by an Order (%)"
+        "Expiration Events with a Subsequent Order (%)"
     )
 
     ax.tick_params(
@@ -327,7 +338,7 @@ def plot_order_rates_by_timing_windows(
     )
 
     ax.set_ylabel(
-        "Expiration Events Followed by an Order (%)"
+        "Expiration Events with a Subsequent Order (%)"
     )
 
     ax.tick_params(
@@ -345,6 +356,170 @@ def plot_order_rates_by_timing_windows(
     output_path = (
         FIGURE_DIR
         / "order_rates_by_timing_windows.png"
+    )
+
+    plt.savefig(
+        output_path,
+        dpi=300,
+        bbox_inches="tight",
+    )
+
+    plt.close()
+
+    return output_path
+
+
+def plot_order_cdf_around_expiration(
+    nearest_orders: pd.DataFrame,
+) -> Path:
+    """Plot cumulative distribution of orders around expiration."""
+
+    FIGURE_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    days = (
+        nearest_orders["days_from_expiration"]
+        .dropna()
+        .sort_values()
+        .to_numpy()
+    )
+
+    cumulative_probability = (
+        np.arange(1, len(days) + 1) / len(days)
+    ) * 100
+
+    fig, ax = plt.subplots(
+        figsize=(10, 6),
+    )
+
+    ax.plot(
+        days,
+        cumulative_probability,
+        linewidth=2,
+    )
+
+    ax.axvline(
+        0,
+        linestyle="--",
+        linewidth=1.5,
+    )
+
+    ax.set_title(
+        "Cumulative Distribution of Orders Around Expiration"
+    )
+
+    ax.set_xlabel(
+        "Days Relative to Expiration"
+    )
+
+    ax.set_ylabel(
+        "Cumulative Percentage of Orders (%)"
+    )
+
+    ax.set_xlim(-30, 30)
+    ax.set_ylim(0, 100)
+
+    ax.grid(
+        axis="y",
+        alpha=0.3,
+    )
+
+    plt.tight_layout()
+
+    output_path = (
+        FIGURE_DIR
+        / "order_cdf_around_expiration.png"
+    )
+
+    plt.savefig(
+        output_path,
+        dpi=300,
+        bbox_inches="tight",
+    )
+
+    plt.close()
+
+    return output_path
+
+
+def plot_order_pdf_around_expiration(
+    nearest_orders: pd.DataFrame,
+) -> Path:
+    """Plot empirical order distribution around expiration."""
+
+    FIGURE_DIR.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    analysis = nearest_orders.copy()
+
+    analysis["relative_day"] = np.floor(
+        analysis["days_from_expiration"]
+    ).astype(int)
+
+    daily_counts = (
+        analysis
+        .groupby("relative_day")
+        .size()
+        .reindex(
+            range(-30, 31),
+            fill_value=0,
+        )
+    )
+
+    daily_probability = (
+        daily_counts / daily_counts.sum()
+    ) * 100
+
+    fig, ax = plt.subplots(
+        figsize=(10, 6),
+    )
+
+    ax.plot(
+        daily_probability.index,
+        daily_probability.values,
+        linewidth=2,
+    )
+
+    ax.fill_between(
+        daily_probability.index,
+        daily_probability.values,
+        alpha=0.2,
+    )
+
+    ax.axvline(
+        0,
+        linestyle="--",
+        linewidth=1.5,
+    )
+
+    ax.set_title(
+        "Distribution of Orders Around Expiration"
+    )
+
+    ax.set_xlabel(
+        "Days Relative to Expiration"
+    )
+
+    ax.set_ylabel(
+        "Percentage of Orders in ±30-Day Window (%)"
+    )
+
+    ax.set_xlim(-30, 30)
+
+    ax.grid(
+        axis="y",
+        alpha=0.3,
+    )
+
+    plt.tight_layout()
+
+    output_path = (
+        FIGURE_DIR
+        / "order_pdf_around_expiration.png"
     )
 
     plt.savefig(
