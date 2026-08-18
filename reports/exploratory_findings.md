@@ -201,3 +201,37 @@ In comparison, outreach during the final seven days before expiration has the lo
 Average email counts are relatively similar across the four timing groups, ranging from 1.01 to 1.12 emails per expiration event within each weekly window. This suggests that the observed timing differences are not obviously explained by substantially different email frequencies within the individual windows.
 
 These results provide preliminary evidence of a possible pre-expiration outreach window approximately 15–30 days before expiration. However, expiration events may appear in multiple weekly timing groups if they received outreach during more than one part of the final month. The results therefore remain descriptive and should not be interpreted as causal effects of email timing.
+
+## Expiration Window Analysis
+
+To examine purchasing behavior immediately surrounding course expiration, orders were analyzed within a ±30-day window around each expiration event. For expiration events with at least one order in this window, the nearest order to expiration was selected.
+
+### Key Findings
+
+- 10,452 expiration events had an order within 30 days before or after expiration.
+- 69.14% of nearby orders occurred before expiration, compared with 30.86% on or after expiration.
+- The median order occurred approximately 4.83 days before expiration.
+- The average order occurred approximately 4.97 days before expiration.
+- Purchasing activity becomes increasingly concentrated as the expiration date approaches.
+- The largest concentration of orders occurs immediately before expiration, with the PDF showing a pronounced peak near day 0.
+- The CDF reaches approximately 69% by expiration, demonstrating that more than two-thirds of nearby purchasing activity occurs before the course expires.
+
+### Interpretation
+
+The results suggest that expiration acts as a meaningful purchasing deadline. Order activity increases as customers approach expiration and is most concentrated during the final days before expiration. After expiration, order activity drops substantially and gradually declines across the following 30 days.
+
+This pattern should be considered alongside the email timing analysis. Earlier results showed stronger subsequent order rates among expiration events receiving outreach approximately 15–30 days before expiration than among those receiving outreach during the final week. Together, these findings suggest a possible pattern in which earlier outreach creates awareness or prompts consideration, while the actual purchase decision occurs closer to expiration. Additional analysis is needed before interpreting this relationship as causal.
+
+### Order Concentration Around Expiration
+
+Order activity within the ±30-day expiration window is strongly concentrated around the expiration date, particularly immediately before expiration.
+
+Among 10,452 expiration events with an order within 30 days before or after expiration, 69.14% of the nearest orders occurred before expiration and 30.86% occurred on or after expiration.
+
+The final seven days before expiration represented the single largest weekly concentration of ordering activity, accounting for 24.69% of all nearby orders. The cumulative distribution increased from 44.45% seven days before expiration to 69.14% by expiration.
+
+Ordering activity declined substantially after expiration. By seven days after expiration, 82.65% of all orders in the ±30-day window had already occurred. By 14 days after expiration, 89.53% had occurred.
+
+The median nearest order occurred approximately 4.83 days before expiration, further demonstrating that purchasing activity is centered shortly before the expiration date.
+
+These findings suggest that expiration acts as a meaningful purchasing deadline. Customers who place orders near an expiration event are substantially more likely to do so before expiration, with the strongest concentration occurring during the final week.

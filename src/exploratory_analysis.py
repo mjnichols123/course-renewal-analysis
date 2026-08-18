@@ -1,7 +1,7 @@
 """Exploratory analysis functions for course renewal behavior."""
 
 import pandas as pd
-
+import numpy as np
 
 def prepare_expiration_order_pairs(
     expirations: pd.DataFrame,

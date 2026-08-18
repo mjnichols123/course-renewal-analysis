@@ -34,6 +34,13 @@ from src.visualizations import (
     plot_order_rates_by_email_frequency,
     plot_order_rates_by_email_timing,
     plot_order_rates_by_timing_windows,
+    plot_order_cdf_around_expiration,
+    plot_order_pdf_around_expiration,
+)
+
+from src.expiration_window_analysis import (
+    prepare_nearest_order_around_expiration,
+    summarize_orders_around_expiration,
 )
 
 def main() -> None:
@@ -54,6 +61,34 @@ def main() -> None:
     # Assign tables to shorter variable names
     expirations = cleaned_tables["expirations.parquet"]
     orders = cleaned_tables["orders.parquet"]
+    nearest_30_day_orders = (
+        prepare_nearest_order_around_expiration(
+            expirations,
+            orders,
+            window_days=30,
+        )
+    )
+
+    summarize_orders_around_expiration(
+        nearest_30_day_orders,
+    )
+
+    cdf_path = plot_order_cdf_around_expiration(
+        nearest_30_day_orders,
+    )
+
+    pdf_path = plot_order_pdf_around_expiration(
+        nearest_30_day_orders,
+    )
+
+    print(
+        f"\nOrder CDF figure saved to: {cdf_path}"
+    )
+
+    print(
+        f"Order PDF figure saved to: {pdf_path}"
+    )
+    
     email_blasts = cleaned_tables["email_blasts.parquet"]
 
     # Order timing analysis
