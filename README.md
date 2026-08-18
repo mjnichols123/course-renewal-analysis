@@ -1,5 +1,3 @@
-# course-renewal-analysis
-
 # Course Renewal Analysis
 
 Exploratory data analysis of customer ordering and email outreach behavior around course expiration dates for Modern Training Solutions / Pacific Medical Training.
