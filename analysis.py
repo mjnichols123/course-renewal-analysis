@@ -39,8 +39,10 @@ from src.visualizations import (
 )
 
 from src.expiration_window_analysis import (
+    create_expiration_window_tables,
     prepare_nearest_order_around_expiration,
     summarize_orders_around_expiration,
+    write_expiration_window_report,
 )
 
 def main() -> None:
@@ -71,6 +73,26 @@ def main() -> None:
 
     summarize_orders_around_expiration(
         nearest_30_day_orders,
+    )
+    
+    distribution_table, cdf_table = (
+        create_expiration_window_tables(
+            nearest_30_day_orders,
+        )
+    )
+
+    expiration_report_path = (
+        write_expiration_window_report(
+            nearest_30_day_orders,
+            distribution_table,
+            cdf_table,
+            )
+    )
+
+
+    print(
+        f"Expiration window report saved to: "
+        f"{expiration_report_path}"
     )
 
     cdf_path = plot_order_cdf_around_expiration(
