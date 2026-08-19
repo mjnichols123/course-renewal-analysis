@@ -45,6 +45,11 @@ from src.expiration_window_analysis import (
     write_expiration_window_report,
 )
 
+from src.email_order_analysis import (
+    prepare_email_to_order_timing,
+    summarize_email_to_order_timing,
+)
+
 def main() -> None:
     """Load, clean, summarize, profile, and explore the dataset tables."""
 
@@ -182,6 +187,15 @@ def main() -> None:
     
     frequency_figure_path = plot_order_rates_by_email_frequency(
         outcomes,
+    )
+    
+    email_order_timing = prepare_email_to_order_timing(
+    email_timing,
+    orders,
+    )
+
+    summarize_email_to_order_timing(
+        email_order_timing,
     )
 
     print(
