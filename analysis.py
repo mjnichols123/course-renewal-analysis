@@ -48,7 +48,12 @@ from src.expiration_window_analysis import (
 from src.email_order_analysis import (
     prepare_email_to_order_timing,
     summarize_email_to_order_timing,
+    summarize_order_rates_by_email_week,
+    summarize_final_week_orders_by_email_week,
+    summarize_final_week_orders_by_first_email,
 )
+
+from src.reporting import write_exploratory_findings_report
 
 def main() -> None:
     """Load, clean, summarize, profile, and explore the dataset tables."""
@@ -197,6 +202,21 @@ def main() -> None:
     summarize_email_to_order_timing(
         email_order_timing,
     )
+    
+    summarize_order_rates_by_email_week(
+        email_timing,
+        orders,
+    )
+    
+    summarize_final_week_orders_by_email_week(
+        email_timing,
+        orders,
+    )
+    
+    summarize_final_week_orders_by_first_email(
+        email_timing,
+        orders,
+    )
 
     print(
         f"\nEmail frequency figure saved to: "
@@ -222,7 +242,24 @@ def main() -> None:
         f"Timing windows figure saved to: "
         f"{timing_windows_figure_path}"
     )
-    
+
+    # Generate exploratory findings report
+    print("\nGenerating exploratory findings report...")
+
+    exploratory_report_path = (
+        write_exploratory_findings_report(
+            outcomes,
+            relevant_email_timing,
+            email_order_timing,
+            orders,
+        )
+    )
+
+    print(
+        f"Exploratory findings report saved to: "
+        f"{exploratory_report_path}"
+    )
+
     # Terminal data summaries
     print("\nGenerating terminal summaries...")
 
